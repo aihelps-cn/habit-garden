@@ -3,3 +3,8 @@ test-results/
 playwright-report/
 .DS_Store
 .sites-local/
+.env
+.env.*
+!.env.example
+backups/
+*.sql.gz

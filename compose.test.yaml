@@ -1,0 +1,32 @@
+# 独立验收项目，仅在你希望执行数据库联调时启动。不会连接生产数据库。
+name: habit-garden-tests
+services:
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      DB_HOST: mysql_test
+      DB_PORT: 3306
+      DB_USER: habit_test
+      DB_PASSWORD: test_only_password
+      DB_NAME: habit_garden_test
+      RUN_MYSQL_TESTS: "1"
+    depends_on:
+      mysql_test:
+        condition: service_healthy
+  mysql_test:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: habit_garden_test
+      MYSQL_USER: habit_test
+      MYSQL_PASSWORD: test_only_password
+      MYSQL_ROOT_PASSWORD: test_only_root_password
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--default-time-zone=+00:00"]
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql --protocol=TCP -h 127.0.0.1 -u habit_test habit_garden_test -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60

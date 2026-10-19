@@ -1,0 +1,9 @@
+node_modules
+.git
+.openai
+.sites-local
+.env
+.env.*
+backups
+test-results
+playwright-report

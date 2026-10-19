@@ -1,0 +1,9 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {hashPassword,verifyPassword,token,cookieToken,digest,publicUser} from '../../backend/security.mjs';
+import {nextBalance,requireRole,HttpError} from '../../backend/domain.mjs';
+test('salted password hashes verify the right password only',async()=>{const a=await hashPassword('家庭Password123'),b=await hashPassword('家庭Password123');assert.notEqual(a,b);assert.equal(await verifyPassword('家庭Password123',a),true);assert.equal(await verifyPassword('wrong',a),false);assert.equal(await verifyPassword('bad','broken'),false)});
+test('session cookies require a full random token',()=>{const t=token();assert.equal(t.length,64);assert.notEqual(t,token());assert.equal(cookieToken(`other=x; hg_session=${t}; y=z`),t);assert.equal(cookieToken('hg_session=invalid'),null);assert.equal(digest(t).length,64)});
+test('public user representation never exposes credential material or balance overrides',()=>{const u=publicUser({id:'id',name:'名字',username:'abc',avatar:'🌱',role:'child',auto_submit:1,password_hash:'secret',balance:100});assert.equal(u.password_hash,undefined);assert.equal(u.balance,undefined);assert.equal(u.auto_submit,true)});
+test('point accounting disallows negative balances, fractions and overflow',()=>{assert.equal(nextBalance(20,-20),0);assert.equal(nextBalance(0,5),5);assert.throws(()=>nextBalance(20,-21),e=>e instanceof HttpError&&e.status===409);for(const n of [NaN,0,1.5,1000001,Infinity])assert.throws(()=>nextBalance(10,n));assert.throws(()=>nextBalance(1000000000,1))});
+test('child role cannot invoke parent actions',()=>{assert.throws(()=>requireRole({role:'child'},'parent'),e=>e.status===403);assert.throws(()=>requireRole({role:'parent'},'child'),e=>e.status===403);assert.doesNotThrow(()=>requireRole({role:'parent'},'parent'))});
