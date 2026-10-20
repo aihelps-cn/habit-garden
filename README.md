@@ -1,8 +1,12 @@
-# 小小成长家 · 自行部署版
+# 小小成长家 v3 · 服务器 / iOS / 安卓
 
 面向孩子与家长的习惯养成网站，使用 **Node.js 22 + MySQL 8.0 + Docker Compose**。前端和 API 由同一个应用服务提供，无需另外部署前端。
 
-本版本只交付源码和部署文件，不自动发布到 Sites，也不会自动启动本地服务。旧的浏览器本地存储版数据不会自动导入新的账号系统。
+本版本提供服务器源码、共享界面及 iOS / 安卓工程；服务器使用 MySQL 保存数据。
+
+请优先阅读 [服务器部署与安卓安装手册](deploy/服务器部署与安卓安装手册.md) 和 [手机端构建说明](mobile/README.md)。手机端服务器已配置为 `https://hz.aihelps.cn`，使用前须先更新服务器。
+
+v3 默认保持登录：服务端会话不按日期过期，App 凭据使用系统加密存储，网页 Cookie 自动续期；主动退出、修改密码或清理应用数据仍可使登录失效。
 
 ## 已实现的功能
 
@@ -130,6 +134,7 @@ docker compose start app
 
 ```sh
 npm ci
+npm run build
 npm run check
 npm test
 ```
@@ -155,7 +160,10 @@ docker compose -f compose.test.yaml down
 - `backend/app.mjs`：账号、家庭、任务、审核、奖励与账本 API。
 - `backend/domain.mjs`：事务、积分与自动审核逻辑。
 - `backend/time.mjs`：北京时间与截止时间计算。
-- `dist/`：前端页面，不需要单独构建。
+- `frontend/`：共享界面源码；`npm run build` 复制到 `dist/`，Docker 构建直接使用源码。
+- `backend/auth.mjs`：长期会话、浏览器 Cookie 和手机 Bearer 认证。
+- `mobile/ios/` / `mobile/android/`：手机原生工程；共用界面和服务器。
+- `dist/`：网页交付产物。
 - `server.mjs`：HTTP 服务、后台定时检查及优雅退出。
 - `compose.yaml` / `Dockerfile`：生产部署。
 - `compose.test.yaml` / `Dockerfile.test`：独立 MySQL 集成验收。

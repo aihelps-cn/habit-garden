@@ -16,7 +16,7 @@ const task={id:'33333333-3333-4333-8333-333333333333',name:'阅读 20 分钟',ic
 const reward={id:'44444444-4444-4444-8444-444444444444',name:'零花钱',icon:'💰',type:'cash',cost:10,note:'1 积分 = 1 元'};
 const base={children:[child],child,day:'2026-10-19',timezone:'Asia/Shanghai',tasks:[task],rewards:[reward],checkins:[],orders:[],ledger:[],family:[parent],stats:{approved:0,today_points:0}};
 const requests=[];
-await context.route('**/*',async route=>{const req=route.request(),url=new URL(req.url());if(url.pathname.startsWith('/api')){requests.push({path:url.pathname,method:req.method(),body:req.postDataJSON()});let data={},status=200;const path=url.pathname;
+await context.route('**/*',async route=>{const req=route.request(),url=new URL(req.url());if(url.pathname.startsWith('/api/')){requests.push({path:url.pathname,method:req.method(),body:req.postDataJSON()});let data={},status=200;const path=url.pathname;
 if(path==='/api/state'){if(!signedIn){status=401;data={error:'请先登录'}}else data={...base,me:{...(role==='child'?child:parent),username:'tester',role,auto_submit:true}}}
 else if(path==='/api/auth/register'||path==='/api/auth/login'){signedIn=true;role=req.postDataJSON().role||role;}
 else if(path==='/api/auth/logout')signedIn=false;
@@ -27,7 +27,7 @@ else if(path==='/api/family/invite')data={code:'ABCDEF0123456789',expires_at:'20
 else if(path.endsWith('/tasks'))base.tasks.push({...task,...req.postDataJSON(),id:'66666666-6666-4666-8666-666666666666'});
 else if(path.endsWith('/rewards'))base.rewards.push({...reward,...req.postDataJSON(),id:'77777777-7777-4777-8777-777777777777'});
 return route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});}
-const file=url.pathname==='/'?'index.html':url.pathname.slice(1);if(!['index.html','app.js','art.js','style.css'].includes(file))return route.fulfill({status:404,body:''});return route.fulfill({status:200,contentType:file.endsWith('.css')?'text/css':file.endsWith('.js')?'application/javascript':'text/html',body:await readFile(new URL('../dist/'+file,import.meta.url))});});
+const file=url.pathname==='/'?'index.html':url.pathname.slice(1);if(!['index.html','app.js','art.js','api.js','transport.js','style.css'].includes(file))return route.fulfill({status:404,body:''});return route.fulfill({status:200,contentType:file.endsWith('.css')?'text/css':file.endsWith('.js')?'application/javascript':'text/html',body:await readFile(new URL('../dist/'+file,import.meta.url))});});
 const act=a=>page.locator(`[data-action="${a}"]`);
 const nav=p=>page.locator(`[data-action="nav"][data-page="${p}"]`).first();
 const submit=async()=>{await page.locator('#modal-form [type="submit"]').click();await page.locator('.modal').waitFor({state:'detached'});};
@@ -41,7 +41,7 @@ await act('check').click();await page.locator('[name="note"]').fill('今天读�
 await act('submit-drafts').click();await submit();await page.locator('.habit-sub').filter({hasText:'待家长审核'}).waitFor();assert.equal(child.balance,0);
 await page.screenshot({path:'/private/tmp/habit-garden-v2-child.png',fullPage:true});
 await nav('family').click();await act('invite').click();await page.locator('.invite-code').waitFor();assert.match(await page.locator('.invite-code').innerText(),/ABCDEF/);await act('close').click();
-await act('logout').click();role='parent';await page.locator('[name="username"]').fill('parent_test');await page.locator('[name="password"]').fill('password123');await page.locator('#auth-form [type="submit"]').click();await act('add-task').waitFor();
+await act('logout').click();await submit();role='parent';await page.locator('[name="username"]').fill('parent_test');await page.locator('[name="password"]').fill('password123');await page.locator('#auth-form [type="submit"]').click();await act('add-task').waitFor();
 await nav('reviews').click();await act('approve').click();await submit();assert.equal(child.balance,5);
 await nav('manage').click();await act('add-task').click();await page.locator('[name="name"]').fill('整理书桌');await page.locator('[name="icon"]').fill('🧹');await submit();assert.equal(base.tasks.length,2);
 await act('add-reward').click();await page.locator('[name="name"]').fill('冰淇淋');await page.locator('[name="type"]').selectOption('reward');await submit();assert.equal(base.rewards.length,2);

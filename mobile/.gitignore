@@ -1,0 +1,6 @@
+node_modules/
+www/
+config.json
+.DS_Store
+.build-tools/
+signing/

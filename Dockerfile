@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --chown=node:node backend ./backend
-COPY --chown=node:node dist ./dist
+COPY --chown=node:node frontend ./dist
 COPY --chown=node:node server.mjs ./
 USER node
 EXPOSE 8080
