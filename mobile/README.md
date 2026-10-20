@@ -52,12 +52,37 @@ npm run open:android
 
 ```sh
 npm run build
-npx cap sync android
+npx cap sync
 cd android
 ./gradlew assembleRelease
 ```
 
+> 也可以用根目录脚本一键完成：`npm run sync` = `npm run build && cap sync`
+
 产物：`android/app/build/outputs/apk/release/app-release.apk`。
+
+**实际构建验证（2026-10-20）：** APK 大小 3.1 MB，签名有效至 2054-03-07，包名 `com.habitgarden.family`，版本 3.0.0 (versionCode 1)。
+
+### 安卓构建常见故障
+
+#### Gradle 拉 maven 依赖报 "Connection refused" 到 127.0.0.1:1082
+
+macOS 默认启用 WPAD 自动代理发现（`ProxyAutoConfigEnable: 1`），Java 会继承系统代理尝试连一个不存在的本地代理 `127.0.0.1:1082`。
+
+**症状：**
+```
+Could not GET 'https://dl.google.com/dl/android/maven2/...'
+Got socket exception during request. It might be caused by SSL misconfiguration
+> Connect to 127.0.0.1:1082 [/127.0.0.1] failed: Connection refused
+```
+
+**解决方法（项目内永久修复）：** 编辑 `mobile/android/gradle.properties`，在 `org.gradle.jvmargs` 里追加：
+
+```properties
+org.gradle.jvmargs=-Xmx1536m -Djava.net.useSystemProxies=false -Dhttp.proxyHost= -Dhttps.proxyHost=
+```
+
+然后 `./gradlew --stop` 停掉守护进程，重新构建。
 
 本次已建立独立的发布签名密钥。后续更新应始终使用这一把密钥，并递增 `android/app/build.gradle` 中的 `versionCode`；不要每次重新生成密钥，否则无法覆盖安装。签名文件不包含在公开源码压缩包中。没有签名资料时，发布构建会明确报错。
 

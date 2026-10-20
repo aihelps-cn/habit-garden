@@ -1,11 +1,46 @@
+# 小小成长家 v3 · Nginx 反向代理参考配置
+# 使用：将 server_name 替换为你的实际域名，ssl_certificate 替换为实际证书路径
+# 本文件仅作为参考；已有 Certbot / 宝塔 / 1Panel 管理 HTTPS 时，只核对 location / 的关键指令
+
+# ========== HTTPS 主 server 块 ==========
 server {
-    listen 80;
     server_name hz.aihelps.cn;
 
+    # 关键：HTTP/1.1，支持长连接和 Upgrade（WebSocket 预留）
     location / {
         proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+
+        # 基本头
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # ⚠️ 这一行很重要：让 Node.js 知道原请求是 HTTPS
+        # 没有它 + TRUST_PROXY=1 时，安全 Cookie 判断会出错
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
+
+    # HTTPS 证书（替换为你的实际路径）
+    listen 443 ssl;
+    ssl_certificate     /etc/letsencrypt/live/hz.aihelps.cn/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/hz.aihelps.cn/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 }
+
+# ========== HTTP → HTTPS 跳转 ==========
+server {
+    listen 80;
+    server_name hz.aihelps.cn;
+    return 301 https://$host$request_uri;
+}
+
+# ========== 安全说明 ==========
+# 1. 应用端口 8080 只对 127.0.0.1 开放（见 compose.yaml BIND_ADDRESS）
+#    所以外部无法绕过 Nginx 直连 Node.js
+# 2. 如需临时 HTTP 验证（没配 HTTPS 时）：
+#    - compose.yaml 里改 BIND_ADDRESS=0.0.0.0
+#    - .env 里改 COOKIE_SECURE=false
+#    - Nginx 只保留上面的 HTTP 块，删去 listen 443
+# 3. 修改后验证：nginx -t && nginx -s reload
