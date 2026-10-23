@@ -10,7 +10,7 @@ import {mountAuth} from './auth.mjs';
 import {isoSql,businessDay,atShanghai} from './time.mjs';
 import {fail,requireRole,authorize,childLock,familyMutation,credit,markTask,submitDrafts,reviewCheckin,redeemReward,handleOrder} from './domain.mjs';
 const name=z.string().trim().min(1,'请输入名称').max(60),icon=z.string().trim().min(1).max(16),positive=z.number().int().min(1).max(1000000),uuid=z.string().uuid();
-const taskSchema=z.object({name,icon,category:z.enum(['学习成长','家务劳动','生活习惯']),points:positive,note:z.string().trim().max(200).default('')});
+const taskSchema=z.object({name,icon,category:z.enum(['学习成长','家务劳动','生活习惯','运动/活动']),points:positive,note:z.string().trim().max(200).default('')});
 const rewardSchema=z.object({name,icon,type:z.enum(['reward','cash']),cost:positive,note:z.string().trim().max(200).default('')});
 const id=v=>uuid.parse(v);
 export function createApp(pool,{origin='http://localhost:8080',secureCookies=false,trustProxy=0,authLimit=30}={}){
@@ -20,7 +20,8 @@ export function createApp(pool,{origin='http://localhost:8080',secureCookies=fal
  app.use('/api',(req,res,next)=>{res.set('Cache-Control','no-store');if(!['GET','HEAD','OPTIONS'].includes(req.method)){if(req.get('X-Habit-Request')!=='1')return next(Object.assign(Error('请求校验失败'),{status:403}));const requestOrigin=req.get('Origin');if(requestOrigin&&requestOrigin!==new URL(origin).origin)return next(Object.assign(Error('来源不允许，请检查 PUBLIC_ORIGIN'),{status:403}));}next()});
  app.use('/api',rateLimit({windowMs:60000,limit:300,standardHeaders:'draft-8',legacyHeaders:false,message:{error:'操作过于频繁，请稍后重试'}}));
  const authLimiter=rateLimit({windowMs:15*60000,limit:authLimit,standardHeaders:'draft-8',legacyHeaders:false,message:{error:'登录或注册次数过多，请 15 分钟后重试'}});
- app.get('/api/health',async(req,res)=>{await query(pool,'SELECT 1');res.json({ok:true,database:'mysql',timezone:'Asia/Shanghai',version:'3.0.0',persistent_sessions:true,native_auth:true})});
+ app.get('/api/health',async(req,res)=>{await query(pool,'SELECT 1');res.json({ok:true,database:'mysql',timezone:'Asia/Shanghai',version:'3.1.1',persistent_sessions:true,native_auth:true})});
+ app.get('/api/version',(req,res)=>{res.json({versionName:'3.1.1',versionCode:3,apkUrl:origin+'/apk/app-release.apk',releaseNotes:'优化自定义任务表单：图标选择器可折叠，节省编辑空间；新增「运动/活动」任务分类。',minVersionCode:0})});
  mountAuth(app,pool,{secureCookies,authLimiter});
  app.patch('/api/profile',async(req,res)=>{const data=z.object({name:z.string().trim().min(1).max(40),avatar:icon,auto_submit:z.boolean().optional()}).parse(req.body);await transaction(pool,async c=>{await query(c,'SELECT id FROM users WHERE id=? FOR UPDATE',[req.user.id]);await query(c,'UPDATE users SET name=?,avatar=?,auto_submit=? WHERE id=?',[data.name,data.avatar,data.auto_submit??!!req.user.auto_submit,req.user.id]);});res.json({ok:true});});
  app.post('/api/family/invite',async(req,res)=>{requireRole(req.user,'child');const code=randomBytes(8).toString('hex').toUpperCase();const expires=new Date(Date.now()+24*3600000);await familyMutation(pool,req.user,req.user.id,async c=>{await query(c,'DELETE FROM invitations WHERE child_id=? AND used_at IS NULL',[req.user.id]);await query(c,'INSERT INTO invitations (code_hash,child_id,expires_at) VALUES (?,?,?)',[digest(code),req.user.id,isoSql(expires)]);});res.json({code,expires_at:expires.toISOString()});});

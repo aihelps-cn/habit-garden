@@ -6,3 +6,8 @@ export async function api(path,method='GET',body){
  }
  return data;
 }
+
+// 应用内自动更新（仅原生平台可用，web 端返回 null）
+import * as transport from './transport.js';
+export const checkUpdate = transport.checkUpdate || (async () => null);
+export const downloadAndInstallApk = transport.downloadAndInstallApk || (async () => { throw Error('请在安卓 App 中更新'); });

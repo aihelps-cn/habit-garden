@@ -10,3 +10,7 @@ backups/
 *.sql.gz
 
 delivery/
+
+# 构建产物
+dist/
+mobile/android/app/build/
