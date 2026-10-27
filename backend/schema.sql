@@ -7,8 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
  role ENUM('parent','child') NOT NULL,
  balance BIGINT NOT NULL DEFAULT 0,
  auto_submit BOOLEAN NOT NULL DEFAULT TRUE,
- created_at DATETIME(3) NOT NULL,
- CONSTRAINT balance_nonnegative CHECK (balance >= 0)
+ created_at DATETIME(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS sessions (
  token_hash CHAR(64) PRIMARY KEY,
