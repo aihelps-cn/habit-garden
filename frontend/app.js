@@ -91,20 +91,22 @@ document.addEventListener('change',async event=>{const el=event.target.closest('
 let syncing=false;
 async function poll(){if(syncing||!state||document.hidden||$('.modal'))return;syncing=true;try{await refresh();$('#sync-error')?.remove()}catch(e){if(!$('#sync-error')){$('.topbar')?.insertAdjacentHTML('afterend',`<div class="notice" id="sync-error" role="alert">暂时无法同步：${esc(e.message)}。稍后自动重试。</div>`)}}finally{syncing=false}}
 setInterval(poll,20000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
-document.addEventListener('habit-resume',()=>{if(state)poll();else if(!$('#auth-form'))connect()});
+document.addEventListener('habit-resume',()=>{if(state)poll();else if(!$('#auth-form'))connect();maybeCheckUpdate()});
 document.addEventListener('habit-back',()=>{if($('.modal'))closeModal();else if(menu){menu=false;render()}else if(state&&page!=='today'){page='today';render()}});
 async function connect(){
  $('#app').innerHTML='<div class="empty">正在连接成长花园…</div>';
- try{await refresh();maybeCheckUpdate()}catch(e){$('#app').innerHTML=`<main class="empty"><span>🌱</span><h2>暂时连接不上成长花园</h2><p>${esc(e.message)}</p><p>连接恢复后会自动读取账号，不需要重新登录。</p>${btn('重新连接','retry-connection','primary')}</main>`}
+ try{await refresh()}catch(e){$('#app').innerHTML=`<main class="empty"><span>🌱</span><h2>暂时连接不上成长花园</h2><p>${esc(e.message)}</p><p>连接恢复后会自动读取账号，不需要重新登录。</p>${btn('重新连接','retry-connection','primary')}</main>`}
 }
-let updateChecked=false;
+let lastUpdateCheck=0,promptedVersion=null;
 async function maybeCheckUpdate(){
- if(updateChecked)return;updateChecked=true;
+ if($('.modal')||Date.now()-lastUpdateCheck<300000)return;
+ lastUpdateCheck=Date.now();
  try{
   const info=await checkUpdate();
-  if(!info)return;
+  if(!info||info.versionCode===promptedVersion)return;
+  promptedVersion=info.versionCode;
   showUpdateModal(info);
- }catch{/* 忽略更新检查失败 */}
+ }catch{lastUpdateCheck=0}
 }
 function showUpdateModal(info){
  const force=info.force;
@@ -128,4 +130,4 @@ function showUpdateModal(info){
   }
  );
 }
-connect();
+connect();maybeCheckUpdate();
